@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Presentación interactiva sobre Inteligencia Artificial y Claude de Anthropic">
+<meta name="theme-color" content="#0b0d14">
+<title>IA y Claude — Presentación</title>
+<style>
+  :root {
+    --bg: #0b0d14;
+    --bg2: #12151f;
+    --card: rgba(255,255,255,0.045);
+    --card-b: rgba(255,255,255,0.09);
+    --text: #eceef4;
+    --muted: #9aa1b5;
+    --accent: #e08a5f;
+    --accent2: #8b7cf6;
+    --ok: #4cc38a;
+    --bad: #ef6b6b;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: -20%;
+    background:
+      radial-gradient(40% 35% at 15% 20%, rgba(224,138,95,0.16), transparent 70%),
+      radial-gradient(45% 40% at 85% 80%, rgba(139,124,246,0.16), transparent 70%);
+    animation: drift 22s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  @keyframes drift { to { transform: translate(4%, -3%) rotate(4deg); } }
+
+  /* ---------- progreso ---------- */
+  .progress { position: fixed; top: 0; left: 0; right: 0; height: 4px; background: rgba(255,255,255,0.06); z-index: 20; }
+  .progress > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .5s cubic-bezier(.2,.8,.2,1); }
+
+  /* ---------- diapositivas ---------- */
+  .deck { position: relative; height: 100vh; height: 100dvh; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: clamp(56px, 8vh, 90px) clamp(18px, 6vw, 96px) calc(96px + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    opacity: 0; visibility: hidden;
+    transform: translateX(40px);
+    transition: opacity .55s ease, transform .55s cubic-bezier(.2,.8,.2,1), visibility 0s .55s;
+  }
+  .slide.prev { transform: translateX(-40px); }
+  .slide.active { opacity: 1; visibility: visible; transform: none; transition: opacity .55s ease, transform .55s cubic-bezier(.2,.8,.2,1); }
+  .inner { width: 100%; max-width: 1080px; margin: auto; }
+
+  .slide.active .reveal { animation: up .7s cubic-bezier(.2,.8,.2,1) both; }
+  .slide.active .reveal:nth-child(2) { animation-delay: .08s; }
+  .slide.active .reveal:nth-child(3) { animation-delay: .16s; }
+  .slide.active .reveal:nth-child(4) { animation-delay: .24s; }
+  .slide.active .reveal:nth-child(5) { animation-delay: .32s; }
+  .slide.active .grid > * { animation: up .6s cubic-bezier(.2,.8,.2,1) both; }
+  .slide.active .grid > *:nth-child(2) { animation-delay: .1s; }
+  .slide.active .grid > *:nth-child(3) { animation-delay: .2s; }
+  .slide.active .grid > *:nth-child(4) { animation-delay: .3s; }
+  .slide.active .grid > *:nth-child(5) { animation-delay: .4s; }
+  .slide.active .grid > *:nth-child(6) { animation-delay: .5s; }
+  @keyframes up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+  .kicker { color: var(--accent); font-weight: 600; letter-spacing: .12em; text-transform: uppercase; font-size: .78rem; margin-bottom: .6rem; }
+  h1 { font-size: clamp(2.2rem, 6.5vw, 4.6rem); line-height: 1.05; letter-spacing: -.02em; }
+  h2 { font-size: clamp(1.6rem, 4.2vw, 2.8rem); line-height: 1.12; letter-spacing: -.015em; margin-bottom: 1rem; }
+  h3 { font-size: 1.08rem; margin-bottom: .35rem; }
+  p.lead { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--muted); max-width: 62ch; }
+  .grad { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .muted { color: var(--muted); }
+  .small { font-size: .85rem; }
+
+  .grid { display: grid; gap: 14px; margin-top: 1.4rem; }
+  .g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .card {
+    background: var(--card); border: 1px solid var(--card-b); border-radius: var(--radius);
+    padding: 18px 18px 16px;
+    transition: transform .25s ease, border-color .25s ease, background .25s ease;
+  }
+  .card:hover { transform: translateY(-3px); border-color: rgba(224,138,95,.45); background: rgba(255,255,255,.065); }
+  .card p { color: var(--muted); font-size: .95rem; }
+  .icon { font-size: 1.5rem; margin-bottom: .4rem; display: block; }
+
+  /* portada */
+  .hero-orb {
+    width: clamp(90px, 16vw, 150px); aspect-ratio: 1; border-radius: 50%; margin-bottom: 1.6rem;
+    background: conic-gradient(from 0deg, var(--accent), var(--accent2), var(--accent));
+    filter: blur(1px); box-shadow: 0 0 80px rgba(224,138,95,.35);
+    animation: spin 12s linear infinite, pulse 4s ease-in-out infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 50% { box-shadow: 0 0 120px rgba(139,124,246,.45); } }
+  .hint { margin-top: 2rem; color: var(--muted); font-size: .9rem; }
+  kbd { background: rgba(255,255,255,.08); border: 1px solid var(--card-b); border-bottom-width: 2px; border-radius: 6px; padding: 1px 7px; font-family: inherit; font-size: .85em; }
+
+  /* tokens */
+  .tok-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 1.2rem; }
+  textarea {
+    width: 100%; min-height: 120px; resize: vertical;
+    background: rgba(0,0,0,.35); color: var(--text); border: 1px solid var(--card-b); border-radius: 12px;
+    padding: 12px; font: inherit; font-size: 1rem;
+  }
+  textarea:focus { outline: 2px solid var(--accent2); outline-offset: 1px; }
+  .tokens { display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start; min-height: 120px; max-height: 220px; overflow-y: auto; padding: 10px; background: rgba(0,0,0,.25); border: 1px solid var(--card-b); border-radius: 12px; }
+  .tk { padding: 2px 6px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; white-space: pre; animation: pop .25s ease both; }
+  @keyframes pop { from { opacity: 0; transform: scale(.7); } }
+  .stats { display: flex; gap: 18px; margin-top: 10px; flex-wrap: wrap; font-size: .9rem; color: var(--muted); }
+  .stats b { color: var(--text); font-size: 1.15rem; }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1rem; }
+  .pill { background: var(--card); border: 1px solid var(--card-b); border-radius: 999px; padding: 6px 12px; font-size: .88rem; color: var(--muted); }
+  .pill b { color: var(--text); }
+
+  /* terminal */
+  .term { background: #07080c; border: 1px solid var(--card-b); border-radius: 12px; overflow: hidden; margin-top: 1.2rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: clamp(.75rem, 1.6vw, .92rem); }
+  .term-bar { display: flex; gap: 6px; padding: 10px 12px; background: rgba(255,255,255,.04); }
+  .term-bar i { width: 11px; height: 11px; border-radius: 50%; background: #444; }
+  .term-bar i:nth-child(1){background:#ef6b6b}.term-bar i:nth-child(2){background:#e5b84f}.term-bar i:nth-child(3){background:#4cc38a}
+  .term pre { padding: 14px 16px; min-height: 190px; white-space: pre-wrap; word-break: break-word; color: #cfd3df; }
+  .term .c-acc { color: var(--accent); } .term .c-ok { color: var(--ok); } .term .c-mut { color: #6f768a; }
+  .cursor { display: inline-block; width: .6em; background: var(--accent); animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* quiz */
+  .quiz { margin-top: 1.2rem; max-width: 720px; }
+  .q-head { display: flex; justify-content: space-between; color: var(--muted); font-size: .9rem; margin-bottom: .6rem; }
+  .q-text { font-size: clamp(1.1rem, 2.4vw, 1.4rem); font-weight: 600; margin-bottom: 1rem; }
+  .opts { display: grid; gap: 10px; }
+  .opt {
+    text-align: left; font: inherit; color: var(--text); cursor: pointer;
+    background: var(--card); border: 1px solid var(--card-b); border-radius: 12px; padding: 12px 14px;
+    transition: background .2s, border-color .2s, transform .15s;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--accent2); transform: translateX(3px); }
+  .opt:disabled { cursor: default; }
+  .opt.right { background: rgba(76,195,138,.15); border-color: var(--ok); }
+  .opt.wrong { background: rgba(239,107,107,.15); border-color: var(--bad); }
+  .feedback { min-height: 1.6em; margin-top: .8rem; color: var(--muted); }
+  .btn {
+    font: inherit; font-weight: 600; cursor: pointer; border: 0; border-radius: 10px; padding: 10px 18px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #fff; margin-top: .6rem;
+    transition: transform .15s, opacity .2s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .score { font-size: clamp(2.4rem, 8vw, 4rem); font-weight: 800; }
+
+  /* navegación */
+  .nav {
+    position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px; z-index: 20;
+    background: rgba(18,21,31,.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--card-b); border-radius: 999px; padding: 6px;
+  }
+  .nav button {
+    width: 42px; height: 42px; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgba(255,255,255,.07); color: var(--text); font-size: 1.1rem;
+    transition: background .2s, opacity .2s;
+  }
+  .nav button:hover:not(:disabled) { background: rgba(224,138,95,.35); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .counter { min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }
+  .dots { position: fixed; right: 18px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 9px; z-index: 20; }
+  .dots button { width: 9px; height: 9px; border-radius: 50%; border: 0; background: rgba(255,255,255,.2); cursor: pointer; transition: background .3s, transform .3s; padding: 0; }
+  .dots button.on { background: var(--accent); transform: scale(1.4); }
+
+  :focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; }
+
+  @media (max-width: 760px) {
+    .g2, .g3, .tok-wrap { grid-template-columns: 1fr; }
+    .dots { display: none; }
+    .slide { justify-content: flex-start; }
+    .card { padding: 14px; }
+    .hint .desk { display: none; }
+  }
+  @media (min-width: 761px) { .hint .mob { display: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"><div id="bar"></div></div>
+
+<main class="deck" id="deck">
+
+  <!-- 1. Portada -->
+  <section class="slide" aria-label="Portada">
+    <div class="inner">
+      <div class="hero-orb reveal"></div>
+      <p class="kicker reveal">Presentación interactiva</p>
+      <h1 class="reveal">Inteligencia Artificial<br>y <span class="grad">Claude</span></h1>
+      <p class="lead reveal" style="margin-top:1rem">Qué es la IA, cómo funcionan los modelos de lenguaje y cómo Claude, de Anthropic, puede ayudarte a trabajar mejor.</p>
+      <p class="hint reveal">
+        <span class="desk">Usa <kbd>←</kbd> <kbd>→</kbd> o las teclas <kbd>1</kbd>–<kbd>9</kbd> para navegar.</span>
+        <span class="mob">Desliza hacia los lados para avanzar.</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- 2. Qué es la IA -->
+  <section class="slide" aria-label="Qué es la IA">
+    <div class="inner">
+      <p class="kicker reveal">01 · Fundamentos</p>
+      <h2 class="reveal">¿Qué es la Inteligencia Artificial?</h2>
+      <p class="lead reveal">Es el campo de la informática que crea sistemas capaces de realizar tareas que normalmente asociamos con la inteligencia humana: entender lenguaje, reconocer patrones, razonar y tomar decisiones.</p>
+      <div class="grid g3">
+        <div class="card"><span class="icon">📐</span><h3>Reglas</h3><p>Los primeros sistemas seguían instrucciones escritas a mano por personas.</p></div>
+        <div class="card"><span class="icon">📊</span><h3>Aprendizaje automático</h3><p>Los sistemas aprenden patrones a partir de datos en lugar de reglas fijas.</p></div>
+        <div class="card"><span class="icon">🧠</span><h3>Aprendizaje profundo</h3><p>Redes neuronales con muchas capas que hoy impulsan la IA generativa.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Cómo funcionan los LLM -->
+  <section class="slide" aria-label="Cómo funcionan los LLM">
+    <div class="inner">
+      <p class="kicker reveal">02 · Modelos de lenguaje</p>
+      <h2 class="reveal">¿Cómo funciona un LLM?</h2>
+      <p class="lead reveal">Un modelo de lenguaje grande divide el texto en <b>tokens</b> y aprende a predecir el siguiente. Escribe algo y mira cómo se fragmenta:</p>
+      <div class="tok-wrap reveal">
+        <div>
+          <textarea id="tokIn" aria-label="Texto para tokenizar" spellcheck="false">Claude ayuda a los equipos a escribir, analizar y programar más rápido.</textarea>
+          <div class="stats"><span>Tokens aprox.: <b id="tokN">0</b></span><span>Caracteres: <b id="chN">0</b></span><span>Palabras: <b id="wN">0</b></span></div>
+        </div>
+        <div class="tokens" id="tokOut" aria-live="polite"></div>
+      </div>
+      <p class="small muted reveal" style="margin-top:.6rem">* Simulación educativa: cada modelo usa su propio tokenizador y los cortes reales varían.</p>
+      <div class="pills reveal">
+        <span class="pill"><b>Entrenamiento:</b> aprende patrones de enormes cantidades de texto y luego se ajusta con retroalimentación humana.</span>
+        <span class="pill"><b>Contexto:</b> la “memoria de trabajo”: todo lo que el modelo puede considerar a la vez en una conversación.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Claude y Anthropic -->
+  <section class="slide" aria-label="Claude y Anthropic">
+    <div class="inner">
+      <p class="kicker reveal">03 · Conoce a Claude</p>
+      <h2 class="reveal">Claude, creado por <span class="grad">Anthropic</span></h2>
+      <p class="lead reveal">Anthropic es una empresa de investigación y seguridad en IA. Claude es su familia de modelos de lenguaje, diseñada para ser útil, honesta y segura.</p>
+      <div class="grid g3">
+        <div class="card"><span class="icon">🏢</span><h3>Anthropic</h3><p>Fundada en 2021 con el objetivo de construir sistemas de IA confiables, interpretables y orientables.</p></div>
+        <div class="card"><span class="icon">🧩</span><h3>Familia de modelos</h3><p>Varias versiones (como Haiku, Sonnet y Opus) que equilibran velocidad, costo y capacidad.</p></div>
+        <div class="card"><span class="icon">🌐</span><h3>Dónde usarlo</h3><p>En claude.ai, apps de escritorio y móvil, la API para desarrolladores y la terminal con Claude Code.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Capacidades -->
+  <section class="slide" aria-label="Lo que puede hacer">
+    <div class="inner">
+      <p class="kicker reveal">04 · Capacidades</p>
+      <h2 class="reveal">¿Qué puede hacer Claude?</h2>
+      <div class="grid g2">
+        <div class="card"><span class="icon">💻</span><h3>Código</h3><p>Escribir, explicar, depurar y refactorizar código en muchos lenguajes.</p></div>
+        <div class="card"><span class="icon">🔎</span><h3>Análisis</h3><p>Resumir documentos largos, comparar información, extraer datos y analizar imágenes.</p></div>
+        <div class="card"><span class="icon">✍️</span><h3>Escritura</h3><p>Redactar correos, informes, propuestas y contenido creativo con el tono adecuado.</p></div>
+        <div class="card"><span class="icon">🤖</span><h3>Agentes</h3><p>Usar herramientas y ejecutar tareas de varios pasos de forma autónoma, con supervisión humana.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Claude Code -->
+  <section class="slide" aria-label="Claude Code" id="s-code">
+    <div class="inner">
+      <p class="kicker reveal">05 · Para desarrolladores</p>
+      <h2 class="reveal">Claude Code</h2>
+      <p class="lead reveal">Una herramienta de programación agéntica que vive en tu terminal: entiende tu proyecto, edita archivos, ejecuta comandos y trabaja con git, pidiendo permiso para las acciones importantes.</p>
+      <div class="term reveal" aria-label="Demostración de terminal">
+        <div class="term-bar"><i></i><i></i><i></i></div>
+        <pre id="termOut"></pre>
+      </div>
+      <p class="small muted reveal" style="margin-top:.6rem">También disponible en IDEs, escritorio y la web.</p>
+    </div>
+  </section>
+
+  <!-- 7. Seguridad -->
+  <section class="slide" aria-label="Seguridad y uso responsable">
+    <div class="inner">
+      <p class="kicker reveal">06 · Responsabilidad</p>
+      <h2 class="reveal">Seguridad y uso responsable</h2>
+      <div class="grid g2">
+        <div class="card"><span class="icon">📜</span><h3>IA Constitucional</h3><p>Anthropic entrena a Claude con un conjunto de principios que guían su comportamiento.</p></div>
+        <div class="card"><span class="icon">✅</span><h3>Verifica siempre</h3><p>La IA puede equivocarse. Revisa datos, cifras y código antes de usarlos en decisiones importantes.</p></div>
+        <div class="card"><span class="icon">🔒</span><h3>Cuida la información</h3><p>No compartas datos sensibles sin conocer las políticas de tu organización.</p></div>
+        <div class="card"><span class="icon">🧑‍⚖️</span><h3>Humano en el ciclo</h3><p>La IA asiste; las personas siguen siendo responsables de las decisiones finales.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Negocios -->
+  <section class="slide" aria-label="Casos de uso en negocios">
+    <div class="inner">
+      <p class="kicker reveal">07 · En la empresa</p>
+      <h2 class="reveal">Casos de uso en negocios</h2>
+      <div class="grid g3">
+        <div class="card"><span class="icon">🎧</span><h3>Atención al cliente</h3><p>Borradores de respuesta, clasificación de solicitudes y bases de conocimiento.</p></div>
+        <div class="card"><span class="icon">📈</span><h3>Análisis de datos</h3><p>Interpretar reportes, detectar tendencias y explicar resultados en lenguaje claro.</p></div>
+        <div class="card"><span class="icon">📣</span><h3>Marketing</h3><p>Ideas de campañas, textos para redes y adaptación de contenido a cada audiencia.</p></div>
+        <div class="card"><span class="icon">⚙️</span><h3>Desarrollo</h3><p>Acelerar la programación, las pruebas, la documentación y la revisión de código.</p></div>
+        <div class="card"><span class="icon">📄</span><h3>Documentos</h3><p>Resumir contratos, actas e informes extensos en minutos.</p></div>
+        <div class="card"><span class="icon">🎓</span><h3>Formación</h3><p>Material de capacitación, guías y un tutor disponible para el equipo.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Quiz -->
+  <section class="slide" aria-label="Quiz">
+    <div class="inner">
+      <p class="kicker reveal">08 · Pon a prueba lo aprendido</p>
+      <h2 class="reveal">Quiz rápido</h2>
+      <div class="quiz reveal" id="quiz"></div>
+    </div>
+  </section>
+
+  <!-- 10. Cierre -->
+  <section class="slide" aria-label="Cierre">
+    <div class="inner" style="text-align:center">
+      <div class="hero-orb reveal" style="margin-inline:auto"></div>
+      <h1 class="reveal">La IA es una <span class="grad">herramienta</span>,<br>tú pones el criterio.</h1>
+      <p class="lead reveal" style="margin:1.2rem auto 0">Empieza con tareas pequeñas, verifica los resultados y descubre dónde Claude te ahorra más tiempo.</p>
+      <p class="hint reveal"><a href="https://claude.ai" target="_blank" rel="noopener" style="color:var(--accent)">claude.ai</a> · <a href="https://www.anthropic.com" target="_blank" rel="noopener" style="color:var(--accent)">anthropic.com</a></p>
+      <p class="reveal"><button class="btn" id="restart">↺ Volver al inicio</button></p>
+    </div>
+  </section>
+
+</main>
+
+<nav class="dots" id="dots" aria-label="Ir a diapositiva"></nav>
+<nav class="nav" aria-label="Navegación">
+  <button id="prev" aria-label="Anterior">←</button>
+  <span class="counter" id="counter">1 / 10</span>
+  <button id="next" aria-label="Siguiente">→</button>
+</nav>
+
+<script>
+(function () {
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const bar = document.getElementById('bar');
+  const counter = document.getElementById('counter');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const dotsEl = document.getElementById('dots');
+  let current = 0;
+
+  slides.forEach((s, i) => {
+    const d = document.createElement('button');
+    d.setAttribute('aria-label', 'Diapositiva ' + (i + 1));
+    d.addEventListener('click', () => go(i));
+    dotsEl.appendChild(d);
+  });
+  const dots = Array.from(dotsEl.children);
+
+  function go(n) {
+    n = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => {
+      s.classList.toggle('active', i === n);
+      s.classList.toggle('prev', i < n);
+      s.setAttribute('aria-hidden', i === n ? 'false' : 'true');
+    });
+    current = n;
+    slides[n].scrollTop = 0;
+    bar.style.width = ((n + 1) / slides.length * 100) + '%';
+    counter.textContent = (n + 1) + ' / ' + slides.length;
+    prevBtn.disabled = n === 0;
+    nextBtn.disabled = n === slides.length - 1;
+    dots.forEach((d, i) => d.classList.toggle('on', i === n));
+    if (history.replaceState) history.replaceState(null, '', '#' + (n + 1));
+    if (slides[n].id === 's-code') runTerminal();
+  }
+
+  prevBtn.addEventListener('click', () => go(current - 1));
+  nextBtn.addEventListener('click', () => go(current + 1));
+  document.getElementById('restart').addEventListener('click', () => go(0));
+
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'textarea' || tag === 'input' || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); go(current + 1); }
+    else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(current - 1); }
+    else if (e.key === 'Home') go(0);
+    else if (e.key === 'End') go(slides.length - 1);
+    else if (/^[1-9]$/.test(e.key)) go(parseInt(e.key, 10) - 1);
+    else if (e.key === '0') go(9);
+  });
+
+  // Deslizar en pantallas táctiles
+  let sx = 0, sy = 0, tracking = false;
+  document.addEventListener('touchstart', (e) => {
+    const tag = (e.target.tagName || '').toLowerCase();
+    tracking = !(tag === 'textarea' || e.target.closest('.tokens'));
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (!tracking) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.4) go(current + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  // ---------- Simulador de tokens ----------
+  const tokIn = document.getElementById('tokIn');
+  const tokOut = document.getElementById('tokOut');
+  const colors = ['rgba(224,138,95,.28)', 'rgba(139,124,246,.28)', 'rgba(76,195,138,.25)', 'rgba(229,184,79,.25)', 'rgba(94,170,240,.25)'];
+
+  function tokenize(text) {
+    // Aproximación: separa palabras y signos, y parte palabras largas en trozos.
+    const parts = text.match(/\s*[\p{L}\p{N}]+|\s*[^\s\p{L}\p{N}]|\s+/gu) || [];
+    const out = [];
+    parts.forEach((p) => {
+      const lead = p.match(/^\s*/)[0];
+      const word = p.slice(lead.length);
+      if (word.length <= 6) { out.push(p); return; }
+      let first = true;
+      for (let i = 0; i < word.length; i += 4) {
+        out.push((first ? lead : '') + word.slice(i, i + 4));
+        first = false;
+      }
+    });
+    return out;
+  }
+  function renderTokens() {
+    const text = tokIn.value;
+    const toks = tokenize(text);
+    tokOut.innerHTML = '';
+    toks.forEach((t, i) => {
+      const s = document.createElement('span');
+      s.className = 'tk';
+      s.textContent = t.replace(/\n/g, '⏎');
+      s.style.background = colors[i % colors.length];
+      s.style.animationDelay = Math.min(i * 15, 600) + 'ms';
+      tokOut.appendChild(s);
+    });
+    document.getElementById('tokN').textContent = toks.length;
+    document.getElementById('chN').textContent = text.length;
+    document.getElementById('wN').textContent = (text.trim().match(/\S+/g) || []).length;
+  }
+  tokIn.addEventListener('input', renderTokens);
+  renderTokens();
+
+  // ---------- Terminal animada ----------
+  const termOut = document.getElementById('termOut');
+  const script = [
+    ['<span class="c-acc">$</span> ', 0], ['claude', 1], ['\n', 0],
+    ['<span class="c-mut">&gt;</span> ', 0], ['Agrega validación de email al formulario de registro y crea sus pruebas', 1], ['\n\n', 0],
+    ['<span class="c-mut">● Leyendo src/components/RegisterForm.jsx…</span>\n', 0],
+    ['<span class="c-mut">● Buscando el patrón de pruebas del proyecto…</span>\n', 0],
+    ['<span class="c-ok">✓</span> Editado RegisterForm.jsx\n', 0],
+    ['<span class="c-ok">✓</span> Creado RegisterForm.test.jsx\n', 0],
+    ['<span class="c-acc">?</span> ¿Ejecutar <b>npm test</b>? (s/n) ', 0], ['s', 1], ['\n', 0],
+    ['<span class="c-ok">✓ Todas las pruebas pasaron</span>\n', 0]
+  ];
+  let termTimer = null, termRun = 0;
+  function runTerminal() {
+    const run = ++termRun;
+    clearTimeout(termTimer);
+    let html = '', step = 0;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function next() {
+      if (run !== termRun) return;
+      if (step >= script.length) { termOut.innerHTML = html + '<span class="cursor">&nbsp;</span>'; return; }
+      const [chunk, typed] = script[step++];
+      if (!typed || reduce) {
+        html += chunk;
+        termOut.innerHTML = html + '<span class="cursor">&nbsp;</span>';
+        termTimer = setTimeout(next, reduce ? 0 : 380);
+        return;
+      }
+      let i = 0;
+      (function type() {
+        if (run !== termRun) return;
+        termOut.innerHTML = html + chunk.slice(0, i) + '<span class="cursor">&nbsp;</span>';
+        if (i++ < chunk.length) termTimer = setTimeout(type, 28);
+        else { html += chunk; termTimer = setTimeout(next, 300); }
+      })();
+    }
+    next();
+  }
+
+  // ---------- Quiz ----------
+  const questions = [
+    { q: '¿Qué hace un modelo de lenguaje grande (LLM) al generar texto?',
+      o: ['Busca la respuesta exacta en una base de datos', 'Predice el siguiente token a partir del contexto', 'Copia textos de internet en tiempo real'],
+      a: 1, e: 'Los LLM generan texto prediciendo token a token según lo que ya está en el contexto.' },
+    { q: '¿Qué empresa desarrolla Claude?',
+      o: ['Anthropic', 'Una universidad pública', 'Un gobierno'],
+      a: 0, e: 'Claude es desarrollado por Anthropic, una empresa de investigación y seguridad en IA.' },
+    { q: '¿Cuál es una buena práctica al usar IA en el trabajo?',
+      o: ['Usar sus respuestas sin revisarlas', 'Compartir cualquier dato confidencial', 'Verificar los resultados y mantener a una persona en el ciclo'],
+      a: 2, e: 'La IA puede equivocarse: revisar y supervisar es clave para un uso responsable.' }
+  ];
+  const quiz = document.getElementById('quiz');
+  let qi = 0, score = 0;
+
+  function renderQuestion() {
+    const item = questions[qi];
+    quiz.innerHTML =
+      '<div class="q-head"><span>Pregunta ' + (qi + 1) + ' de ' + questions.length + '</span><span>Puntaje: ' + score + '</span></div>' +
+      '<div class="q-text"></div><div class="opts"></div><div class="feedback" aria-live="polite"></div>';
+    quiz.querySelector('.q-text').textContent = item.q;
+    const opts = quiz.querySelector('.opts');
+    item.o.forEach((text, i) => {
+      const b = document.createElement('button');
+      b.className = 'opt';
+      b.textContent = String.fromCharCode(65 + i) + ') ' + text;
+      b.addEventListener('click', () => answer(i));
+      opts.appendChild(b);
+    });
+  }
+  function answer(i) {
+    const item = questions[qi];
+    const btns = quiz.querySelectorAll('.opt');
+    btns.forEach((b, j) => {
+      b.disabled = true;
+      if (j === item.a) b.classList.add('right');
+      else if (j === i) b.classList.add('wrong');
+    });
+    if (i === item.a) score++;
+    quiz.querySelector('.q-head span:last-child').textContent = 'Puntaje: ' + score;
+    const fb = quiz.querySelector('.feedback');
+    fb.textContent = (i === item.a ? '¡Correcto! ' : 'No exactamente. ') + item.e;
+    const nb = document.createElement('button');
+    nb.className = 'btn';
+    nb.textContent = qi < questions.length - 1 ? 'Siguiente pregunta →' : 'Ver resultado';
+    nb.addEventListener('click', () => { qi++; qi < questions.length ? renderQuestion() : renderResult(); });
+    quiz.appendChild(nb);
+  }
+  function renderResult() {
+    const msgs = ['¡Sigue explorando!', 'Buen comienzo.', '¡Muy bien!', '¡Perfecto! 🎉'];
+    quiz.innerHTML = '<p class="muted">Tu resultado</p><div class="score"><span class="grad">' + score + ' / ' + questions.length + '</span></div><p class="lead">' + msgs[score] + '</p>';
+    const r = document.createElement('button');
+    r.className = 'btn';
+    r.textContent = '↺ Intentar de nuevo';
+    r.addEventListener('click', () => { qi = 0; score = 0; renderQuestion(); });
+    quiz.appendChild(r);
+  }
+  renderQuestion();
+
+  // Inicio (respeta #n en la URL)
+  const fromHash = parseInt((location.hash || '').slice(1), 10);
+  go(isNaN(fromHash) ? 0 : fromHash - 1);
+})();
+</script>
+</body>
+</html>
